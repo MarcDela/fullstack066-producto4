@@ -1,46 +1,28 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const mongoose = require('mongoose');
 
 /**
  * CONFIGURACIÓN DE MONGO ATLAS
- * Sustituimos localhost por la cadena de conexión de ClusterMarc
  */
 const uri = process.env.MONGODB_URL;
-const dbName = 'agrojobsDB';
-
-// Creamos el cliente con configuración recomendada para Atlas
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
-let db; // Variable para cachear la conexión
 
 /**
- * Conecta a MongoDB Atlas y devuelve la instancia de la base de datos.
- * @returns {Promise<Db>}
+ * Conecta a MongoDB Atlas usando la biblioteca Mongoose.
+ * Mongoose gestiona internamente el pool de conexiones, por lo que 
+ * no necesitamos cachear la variable 'db' manualmente como hacíamos antes.
  */
-async function conectarDB() {
-    if (db) return db; // Si ya estamos conectados, devolvemos la conexión actual
-
+const conectarDB = async () => {
     try {
-        await client.connect();
+        // Conexión simplificada. Mongoose usa por defecto las mejores opciones para Atlas.
+        await mongoose.connect(uri);
+        console.log('✅ Conexión exitosa a MongoDB Atlas vía Mongoose');
         
-        // Verificamos la conexión (haciendo un ping)
-        await client.db("admin").command({ ping: 1 });
-        
-        console.log('✅ Conexión exitosa a MongoDB Atlas (Cloud: ClusterMarc)');
-        
-        db = client.db(dbName);
-        return db;
     } catch (error) {
-        console.error('❌ Error crítico: No se pudo conectar a MongoDB Atlas.');
-        console.error('Detalles del error:', error.message);
-        console.error('Error de conexión: \n1. ¿IP configurada en "Network Access"? \n2. ¿Usuario/Password correctos?');
+        console.error('❌ Error crítico: No se pudo conectar con Mongoose.');
+        console.error('Detalles:', error.message);
+        
+        // Mantenemos el cierre del proceso si falla la conexión inicial
         process.exit(1);
     }
-}
+};
 
 module.exports = conectarDB;

@@ -8,6 +8,7 @@ const typeDefs = gql`
     ubicacion: String!
     descripcion: String
     fecha: String!
+    autorId: ID
   }
 
   type Demanda {
@@ -17,6 +18,7 @@ const typeDefs = gql`
     disponibilidad: String!
     descripcion: String
     fecha: String!
+    autorId: ID
   }
 
   type Usuario {
@@ -54,6 +56,12 @@ const typeDefs = gql`
 
     # Login
     login(email: String!, password: String!): Autenticacion
+  }
+
+  # Subscriptions (Para los WebSockets)
+  type Subscription {
+    ofertaCreada: Oferta
+    demandaCreada: Demanda
   }
 `;
 
