@@ -1,12 +1,12 @@
 const Usuario = require('../models/Usuarios');
 const Oferta = require('../models/Ofertas');
 const Demanda = require('../models/Demandas');
-
+const { PubSub } = require('graphql-subscriptions');
+const pubsub = new PubSub();
 const jwt = require('jsonwebtoken');
 const { AuthenticationError, UserInputError } = require('apollo-server-express');
 
-// Temporal, implementar variable de entorno y eliminar de aquí
-const SECRETO = process.env.JWT_SECRET || 'MI_CLAVE_SUPER_SECRETA_AGROJOBS';
+const SECRETO = process.env.JWT_SECRET;
 
 const resolvers = {
     Query: {
@@ -14,11 +14,8 @@ const resolvers = {
          * Ya no necesitamos extraer { db } del contexto porque los modelos están conectados.
          */
         obtenerOfertas: async () => await Oferta.find(),
-        
         obtenerDemandas: async () => await Demanda.find(),
-        
         obtenerUsuarios: async () => await Usuario.find(),
-
         buscarUsuario: async (_, { email }) => await Usuario.findOne({ email }),
     },
 
@@ -50,29 +47,30 @@ const resolvers = {
 
         // --- SECCIÓN OFERTAS CON CONTROL DE ROLES ---
         crearOferta: async (_, args, context) => {
-            // Verificación de Autenticación
-            if (!context.usuario) throw new AuthenticationError('Debes estar logueado');
-            
-            // Verificación de Rol: Solo Empresas pueden crear ofertas
-            if (context.usuario.rol !== 'Empresa') {
-                throw new Error('Solo las empresas pueden publicar ofertas');
+            // 1. Verificar si el usuario está autenticado
+            if (!context.usuario) {
+                throw new Error("No autenticado");
             }
 
+            // 2. CONTROL DE ROL: Solo Empresa o Administrador pueden crear ofertas
+            if (context.usuario.rol !== 'Empresa' && context.usuario.rol !== 'Administrador') {
+                throw new Error("Acceso denegado: Solo las empresas pueden publicar ofertas");
+            }
+
+            // 3. Si pasa el control, se guarda en MongoDB
             const nuevaOferta = new Oferta({
                 ...args,
-                fecha: new Date().toLocaleDateString('es-ES'),
-                autorId: context.usuario.id // Vinculamos la oferta al usuario real
+                autorId: context.usuario.id // Guardamos quién la creó
             });
-
             const resultado = await nuevaOferta.save();
 
-            /**
-             * WEBSOCKETS
-             * Aquí es donde notificaremos en tiempo real a todos los conectados.
-             * context.io.emit('oferta_nueva', resultado);
-             */
+            // 4. WEBSOCKET: Notificamos a todos los suscriptores
+            pubsub.publish('OFERTA_CREADA', { 
+                ofertaCreada: resultado 
+            });
 
             return resultado;
+
         },
 
         eliminarOferta: async (_, { id }, context) => {
@@ -92,15 +90,37 @@ const resolvers = {
 
         // --- SECCIÓN DEMANDAS ---
         crearDemanda: async (_, args, context) => {
-            if (!context.usuario) throw new AuthenticationError('Inicia sesión primero');
+            if (!context.usuario) {
+                throw new Error("No autenticado");
+            }
+
+            // CONTROL DE ROL: Solo Candidato o Administrador pueden crear demandas
+            if (context.usuario.rol !== 'Candidato' && context.usuario.rol !== 'Administrador') {
+                throw new Error("Acceso denegado: Solo los candidatos pueden publicar demandas");
+            }
 
             const nuevaDemanda = new Demanda({
                 ...args,
-                fecha: new Date().toLocaleDateString('es-ES'),
-                autorId: context.usuario.id
+                autorId: context.usuario.id // Guardamos quién la creó
+            });
+            const resultado = await nuevaDemanda.save();
+
+            // 4. WEBSOCKET: Notificamos a todos los suscriptores
+            pubsub.publish('DEMANDA_CREADA', { 
+                demandaCreada: resultado 
             });
 
-            return await nuevaDemanda.save();
+            return resultado;
+        }
+    },
+
+    Subscription: {
+        ofertaCreada: {
+            // "Escucha" el canal 'OFERTA_CREADA'
+            subscribe: () => pubsub.asyncIterator(['OFERTA_CREADA'])
+        },
+        demandaCreada: {
+            subscribe: () => pubsub.asyncIterator(['DEMANDA_CREADA'])
         }
     }
 };

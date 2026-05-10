@@ -7,13 +7,9 @@ Prompt 3: "Cómo eliminar tarjetas dinámicas con addEventListener y data attrib
 Prompt 4: "Cómo mostrar ofertas y demandas con estilos diferentes usando Bootstrap"
 */
 
-import { ofertas as ofertasIniciales, demandas as demandasIniciales } from "./datos.js";
 import { Almacenaje, actualizarNavbar } from "./almacenaje.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Sincronización inicial con LocalStorage
-    if (Almacenaje.obtenerOfertas().length === 0) Almacenaje.guardarOfertas(ofertasIniciales);
-    if (Almacenaje.obtenerDemandas().length === 0) Almacenaje.guardarDemandas(demandasIniciales);
 
     const formularioOferta = document.getElementById("form-oferta");
     const inputTipo = document.getElementById("tipo");
@@ -32,181 +28,292 @@ document.addEventListener("DOMContentLoaded", () => {
         mensajeOferta.classList.add(tipo === "error" ? "mensaje-error" : "mensaje-ok");
     }
 
-    /* 
-    Cambiada la funcion para generar ID's unicos independientemente de que sean ofertas o demandas, de esta manera, 
-    se gestiona mejor el drag and drop 
-    */
-    function obtenerNuevoId() {
-        const ofertas = Almacenaje.obtenerOfertas();
-        const demandas = Almacenaje.obtenerDemandas();
-    
-        const todos = [...ofertas, ...demandas];
+    async function pintarPublicaciones() {
+        try {
+            const query = {
+                query: `query {
+                    obtenerOfertas { id titulo empresa ubicacion descripcion fecha }
+                    obtenerDemandas { id nombre profesion disponibilidad descripcion fecha }
+                }`
+            };
+            const res = await fetch('/graphql', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Almacenaje.getToken()}` 
+                },
+                body: JSON.stringify(query)
+            });
+            const { data } = await res.json();
+            
+            const usuarioActual = Almacenaje.getUsuario();
+            
+            // --- LÓGICA DE FILTRADO ---
+            let ofertasFiltradas = data.obtenerOfertas;
+            let demandasFiltradas = data.obtenerDemandas;
 
-        if (todos.length === 0) return 1;
+            // Si NO es administrador, filtramos por el nombre del usuario logueado
+            if (usuarioActual && usuarioActual.rol !== 'Administrador') {
+                // En Ofertas comparamos con el campo 'empresa'
+                ofertasFiltradas = data.obtenerOfertas.filter(o => o.empresa === usuarioActual.nombre);
+                
+                // En Demandas comparamos con el campo 'nombre'
+                demandasFiltradas = data.obtenerDemandas.filter(d => d.nombre === usuarioActual.nombre);
+            }
 
-        // Buscamos el ID más alto entre TODOS
-        return Math.max(...todos.map(e => e.id)) + 1;
-    }
+            // Enviamos los datos (ya filtrados o totales si es Admin) a los componentes visuales
+            pintarTarjetas(ofertasFiltradas, demandasFiltradas);
+            pintarTabla(ofertasFiltradas, demandasFiltradas);
+            
+            // El gráfico también se adapta
+            dibujarGrafico(ofertasFiltradas.length, demandasFiltradas.length);
 
-    function pintarPublicaciones() {
-        const ofertas = Almacenaje.obtenerOfertas();
-        const demandas = Almacenaje.obtenerDemandas();
-        
-        pintarTarjetas(ofertas, demandas);
-        pintarTabla(ofertas, demandas);
-        registrarEventosEliminar();
-        dibujarGrafico();
+        } catch (error) {
+            console.error("Error cargando publicaciones", error);
+        }
     }
 
     function pintarTarjetas(ofertas, demandas) {
         if (!contenedorOfertas) return;
+        const usuarioActual = Almacenaje.getUsuario();
         let html = "";
 
-        ofertas.forEach((o) => {
+        // --- SECCIÓN OFERTAS ---
+        ofertas.forEach(o => {
+            // Un usuario borra lo suyo si el nombre coincide, el Admin borra todo
+            const puedeBorrar = usuarioActual?.rol === 'Administrador' || usuarioActual?.nombre === o.empresa;
+        
+            const btnEliminar = puedeBorrar 
+                ? `<button class="btn btn-outline-danger btn-sm mt-2" onclick="eliminar('oferta', '${o.id}')">
+                    <i class="bi bi-trash"></i> Eliminar
+                </button>` 
+                : "";
+
             html += `
                 <div class="col-md-6 col-xl-4">
-                    <article class="card dashboard-card h-100 shadow-sm">
+                    <article class="card h-100 shadow-sm border-primary">
                         <div class="card-body">
-                            <span class="small text-uppercase text-primary fw-semibold d-block mb-2">Oferta laboral</span>
-                            <h3 class="card-title h4">${o.titulo}</h3>
-                            <p class="card-text mb-1"><strong>${o.empresa}</strong></p>
-                            <p class="card-text mb-1"><strong>${o.fecha}</strong></p>
-                            <p class="card-text text-muted small">${o.ubicacion}</p>
-                            <p class="mt-3 small">${o.descripcion || "Sin descripción."}</p>
-                            <div class="d-flex justify-content-between align-items-center mt-4">
-                                <span class="badge rounded-pill text-bg-primary">Oferta</span>
-                                <button class="btn btn-outline-danger btn-sm btn-eliminar-oferta" data-id="${o.id}">Eliminar</button>
+                            <div class="d-flex justify-content-between">
+                                <span class="badge text-bg-primary mb-2">Oferta</span>
+                                <small class="text-muted">${o.fecha}</small>
                             </div>
+                            <h3 class="h4">${o.titulo}</h3>
+                            <p class="mb-1 text-primary"><strong>${o.empresa}</strong></p>
+                            <p class="text-muted small"><i class="bi bi-geo-alt"></i> ${o.ubicacion}</p>
+                            <hr>
+                            <p class="small text-secondary">${o.descripcion || "Sin descripción"}</p>
+                            <div class="text-end">${btnEliminar}</div>
                         </div>
                     </article>
                 </div>`;
         });
 
-        demandas.forEach((d) => {
+        // --- SECCIÓN DEMANDAS ---
+        demandas.forEach(d => {
+            const puedeBorrar = usuarioActual?.rol === 'Administrador' || usuarioActual?.nombre === d.nombre;
+
+            const btnEliminar = puedeBorrar 
+                ? `<button class="btn btn-outline-danger btn-sm mt-2" onclick="eliminar('demanda', '${d.id}')">
+                    <i class="bi bi-trash"></i> Eliminar
+                </button>` 
+                : "";
+
             html += `
                 <div class="col-md-6 col-xl-4">
-                    <article class="card dashboard-card h-100 shadow-sm">
+                    <article class="card h-100 shadow-sm border-success">
                         <div class="card-body">
-                            <span class="small text-uppercase text-success fw-semibold d-block mb-2">Perfil candidato</span>
-                            <h3 class="card-title h4">${d.nombre}</h3>
-                            <p class="card-text mb-1"><strong>${d.profesion}</strong></p>
-                            <p class="card-text mb-1"><strong>${d.fecha}</strong></p>
-                            <p class="card-text text-muted small">${d.disponibilidad}</p>
-                            <p class="mt-3 small">${d.descripcion || "Sin descripción."}</p>
-                            <div class="d-flex justify-content-between align-items-center mt-4">
-                                <span class="badge rounded-pill text-bg-success">Demanda</span>
-                                <button class="btn btn-outline-danger btn-sm btn-eliminar-demanda" data-id="${d.id}">Eliminar</button>
+                            <div class="d-flex justify-content-between">
+                                <span class="badge text-bg-success mb-2">Demanda</span>
+                                <small class="text-muted">${d.fecha}</small>
                             </div>
+                            <h3 class="h4">${d.nombre}</h3>
+                            <p class="mb-1 text-success"><strong>${d.profesion}</strong></p>
+                            <p class="text-muted small"><i class="bi bi-clock"></i> ${d.disponibilidad}</p>
+                            <hr>
+                            <p class="small text-secondary">${d.descripcion || "Sin descripción"}</p>
+                            <div class="text-end">${btnEliminar}</div>
                         </div>
                     </article>
                 </div>`;
         });
-        contenedorOfertas.innerHTML = html;
+
+        contenedorOfertas.innerHTML = html || `<div class="col-12"><p class="text-center text-muted">No tienes publicaciones todavía.</p></div>`;
     }
 
     function pintarTabla(ofertas, demandas) {
         if (!tablaOfertas) return;
+        const usuarioActual = Almacenaje.getUsuario();
         let html = "";
         
-        const fila = (id, tipo, t1, t2, t3, t4, desc, clase, btnClase) => `
-            <tr>
-                <td>${id}</td>
-                <td><span class="badge ${clase}">${tipo}</span></td>
-                <td>${t1}</td><td>${t2}</td><td>${t3}</td><td>${t4}</td>
-                <td class="small">${desc || "-"}</td>
-                <td class="text-end">
-                    <button class="btn btn-outline-danger btn-sm ${btnClase}" data-id="${id}">Eliminar</button>
-                </td>
-            </tr>`;
+        // Función auxiliar para generar cada fila de la tabla
+        const generarFila = (id, tipo, t1, t2, t3, t4, desc, clase, tipoAccion, propietario) => {
+            // LÓGICA DE PERMISOS: Solo Admin o el propio autor (propietario) pueden borrar
+            const puedeBorrar = usuarioActual?.rol === 'Administrador' || usuarioActual?.nombre === propietario;
 
-        ofertas.forEach(o => html += fila(o.id, "Oferta", o.titulo, o.empresa, o.ubicacion, o.descripcion, o.fecha, "text-bg-primary", "btn-eliminar-oferta"));
-        demandas.forEach(d => html += fila(d.id, "Demanda", d.nombre, d.profesion, d.disponibilidad, d.descripcion, d.fecha, "text-bg-success", "btn-eliminar-demanda"));
-        
-        tablaOfertas.innerHTML = html;
-    }
+            const btnEliminar = puedeBorrar 
+                ? `<button class="btn btn-outline-danger btn-sm" onclick="eliminar('${tipoAccion}', '${id}')">Eliminar</button>` 
+                : `<span class="text-muted small">Sin permisos</span>`;
 
-    function registrarEventosEliminar() {
-        document.querySelectorAll(".btn-eliminar-oferta").forEach(b => {
-            b.onclick = () => {
-                const lista = Almacenaje.obtenerOfertas().filter(o => o.id !== Number(b.dataset.id));
-                Almacenaje.guardarOfertas(lista);
-                pintarPublicaciones();
-                mostrarMensaje("Oferta eliminada", "ok");
-            };
-        });
-        document.querySelectorAll(".btn-eliminar-demanda").forEach(b => {
-            b.onclick = () => {
-                const lista = Almacenaje.obtenerDemandas().filter(d => d.id !== Number(b.dataset.id));
-                Almacenaje.guardarDemandas(lista);
-                pintarPublicaciones();
-                mostrarMensaje("Demanda eliminada", "ok");
-            };
-        });
-    }
-
-    function crearPublicacion(evento) {
-        evento.preventDefault();
-        const tipo = inputTipo.value;
-        const fechaActual = obtenerFechaActual();
-        const datos = {
-            titulo: inputTitulo.value.trim(),
-            empresa: inputEmpresa.value.trim(),
-            ubicacion: inputUbicacion.value.trim(),
-            descripcion: inputDescripcion.value.trim(),
-            fecha: fechaActual
+            return `
+                <tr>
+                    <td class="small text-muted">${id.substring(0, 8)}...</td>
+                    <td><span class="badge ${clase}">${tipo}</span></td>
+                    <td><strong>${t1}</strong></td>
+                    <td>${t2}</td>
+                    <td>${t3}</td>
+                    <td>${t4}</td>
+                    <td class="small text-truncate" style="max-width: 150px;">${desc || "-"}</td>
+                    <td class="text-end">
+                        ${btnEliminar}
+                    </td>
+                </tr>`;
         };
 
-        if (!tipo || !datos.titulo || !datos.empresa || !datos.ubicacion) {
-            mostrarMensaje("Rellena todos los campos", "error");
+        // Renderizamos las Ofertas
+        ofertas.forEach(o => {
+            html += generarFila(
+                o.id, "Oferta", o.titulo, o.empresa, o.ubicacion, o.fecha, o.descripcion, 
+                "text-bg-primary", "oferta", o.empresa // Pasamos o.empresa como propietario
+            );
+        });
+
+        // Renderizamos las Demandas
+        demandas.forEach(d => {
+            html += generarFila(
+                d.id, "Demanda", d.nombre, d.profesion, d.disponibilidad, d.fecha, d.descripcion, 
+                "text-bg-success", "demanda", d.nombre // Pasamos d.nombre como propietario
+            );
+        });
+        
+        tablaOfertas.innerHTML = html || `<tr><td colspan="8" class="text-center text-muted">No hay publicaciones disponibles.</td></tr>`;
+    }
+
+    /**
+     * DELETE: Elimina una publicación de MongoDB
+     * La declaramos en window para que el 'onclick' del HTML pueda encontrarla
+     */
+    window.eliminar = async (tipo, id) => {
+        // 1. Confirmación de cortesía
+        if (!confirm(`¿Estás seguro de que quieres eliminar esta ${tipo}?`)) return;
+
+        // 2. Definimos la Mutation según el tipo
+        const mutation = tipo === 'oferta' 
+            ? `mutation { eliminarOferta(id: "${id}") }`
+            : `mutation { eliminarDemanda(id: "${id}") }`;
+
+        try {
+            const res = await fetch('/graphql', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Almacenaje.getToken()}` // Enviamos la llave
+                },
+                body: JSON.stringify({ query: mutation })
+            });
+
+            const json = await res.json();
+
+            if (json.errors) {
+                // El servidor nos dirá si no tenemos permiso (ej: borrar algo que no es nuestro)
+                mostrarMensaje(json.errors[0].message, "error");
+            } else {
+                // 3. Si todo ok, refrescamos la lista desde el servidor
+                await pintarPublicaciones();
+                mostrarMensaje(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} eliminada correctamente.`, "ok");
+            }
+        } catch (error) {
+            console.error("Error al eliminar:", error);
+            mostrarMensaje("Error de conexión al intentar eliminar.", "error");
+        }
+    };
+
+    /**
+     * CREATE: Crear Oferta o Demanda
+     */
+    async function crearPublicacion(evento) {
+        evento.preventDefault();
+        
+        const tipo = inputTipo.value; 
+        const titulo = inputTitulo.value.trim();
+        const empresa = inputEmpresa.value.trim(); 
+        const ubicacion = inputUbicacion.value.trim(); 
+        const descripcion = inputDescripcion.value.trim();
+
+        // 1. Validaciones básicas en el cliente
+        if (!tipo || !titulo || !empresa || !ubicacion) {
+            mostrarMensaje("Rellena todos los campos obligatorios.", "error");
             return;
         }
 
-        // Eliminados arrays de entrada de obtenerNuevoId porque este ahora ya consulta ambos automáticamente
-        if (tipo === "oferta") {
-            const lista = Almacenaje.obtenerOfertas();
-            lista.push({ id: obtenerNuevoId(), ...datos });
-            Almacenaje.guardarOfertas(lista);
-
-        } else {
-            const lista = Almacenaje.obtenerDemandas();
-            lista.push({ 
-                id: obtenerNuevoId(), 
-                nombre: datos.titulo, 
-                profesion: datos.empresa, 
-                disponibilidad: datos.ubicacion, 
-                descripcion: datos.descripcion,
-                fecha: datos.fecha
-            });
-            Almacenaje.guardarDemandas(lista);
+        // 2. Validación de usuario logueado
+        const usuarioActual = Almacenaje.getUsuario();
+        if (!usuarioActual) {
+            mostrarMensaje("Debes estar logueado para publicar.", "error");
+            return;
         }
 
-        formularioOferta.reset();
-        pintarPublicaciones();
-        mostrarMensaje("Publicado con éxito", "ok");
-    }
+        // 3. Construcción de la Mutation según el tipo seleccionado
+        let queryStr = "";
+        if (tipo === "oferta") {
+            queryStr = `
+                mutation {
+                    crearOferta(
+                        titulo: "${titulo}", 
+                        empresa: "${empresa}", 
+                        ubicacion: "${ubicacion}", 
+                        descripcion: "${descripcion}"
+                    ) { id }
+                }`;
+        } else {
+            queryStr = `
+                mutation {
+                    crearDemanda(
+                        nombre: "${titulo}", 
+                        profesion: "${empresa}", 
+                        disponibilidad: "${ubicacion}", 
+                        descripcion: "${descripcion}"
+                    ) { id }
+                }`;
+        }
 
-    /*
-    Función para obtener la fecha automáticamente y formatearla a String
-    */
-    function obtenerFechaActual() {
-        const hoy = new Date();
-        const dia = String(hoy.getDate()).padStart(2, '0');
-        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-        const anio = hoy.getFullYear();
+        try {
+            const respuesta = await fetch('/graphql', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Almacenaje.getToken()}` // Enviamos el token para validar rol
+                },
+                body: JSON.stringify({ query: queryStr })
+            });
 
-        return `${dia}/${mes}/${anio}`;
+            const json = await respuesta.json();
+
+            if (json.errors) {
+                // El servidor nos dirá si, por ejemplo, un Candidato intenta crear una Oferta
+                mostrarMensaje(json.errors[0].message, "error");
+            } else {
+                // Éxito
+                if (formularioOferta) formularioOferta.reset();
+                
+                // Refrescamos los datos pidiéndolos de nuevo al servidor
+                await pintarPublicaciones(); 
+                
+                mostrarMensaje(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} publicada con éxito.`, "ok");
+            }
+        } catch (error) {
+            console.error("Error al crear publicación:", error);
+            mostrarMensaje("Error de conexión con el servidor.", "error");
+        }
     }
 
     /*
     Función para dibujar el gráfico canvas
     */
-    function dibujarGrafico() {
+    function dibujarGrafico(numOfertas, numDemandas) {
         const canvas = document.getElementById("grafico-stats");
         if (!canvas) return;
 
         const ctx = canvas.getContext("2d");
-        const numOfertas = Almacenaje.obtenerOfertas().length;
-        const numDemandas = Almacenaje.obtenerDemandas().length;
 
         // 1. Limpiar el canvas antes de redibujar
         ctx.clearRect(0, 0, canvas.width, canvas.height);

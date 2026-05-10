@@ -1,51 +1,43 @@
-const CLAVE_USUARIOS = "usuarios";
+const CLAVE_TOKEN = "token_agrojobs";
 const CLAVE_SESION = "usuarioLogueado";
 
-// --- MÓDULO CRUD Y STORAGE ---
+// --- MÓDULO DE SESION Y SEGURIDAD ---
 export const Almacenaje = {
-    obtenerUsuarios: () => {
-        const data = localStorage.getItem(CLAVE_USUARIOS);
-        return data ? JSON.parse(data) : [];
+   // Guarda el token y los datos básicos del usuario al hacer login
+    setSesion: (token, usuario) => {
+        localStorage.setItem(CLAVE_TOKEN, token);
+        localStorage.setItem(CLAVE_USUARIO, JSON.stringify(usuario));
     },
 
-    guardarUsuarios: (usuarios) => {
-        localStorage.setItem(CLAVE_USUARIOS, JSON.stringify(usuarios));
+    // Recupera el usuario completo (id, nombre, email, rol)
+    getUsuario: () => {
+        const user = localStorage.getItem(CLAVE_USUARIO);
+        return user ? JSON.parse(user) : null;
     },
 
-    buscarUsuario: (email) => {
-        const usuarios = Almacenaje.obtenerUsuarios();
-        return usuarios.find(u => u.email === email);
+    // Recupera solo el Token (necesario para las cabeceras de los fetch)
+    getToken: () => {
+        return localStorage.getItem(CLAVE_TOKEN);
     },
 
-    borrarUsuario: (email) => {
-        const usuarios = Almacenaje.obtenerUsuarios();
-        const filtrados = usuarios.filter(u => u.email !== email);
-        Almacenaje.guardarUsuarios(filtrados);
-    },
-
-    // --- DATOS DE SESION ---
-    getSesion: () => localStorage.getItem(CLAVE_SESION),
-    setSesion: (email) => localStorage.setItem(CLAVE_SESION, email),
-    borrarSesion: () => localStorage.removeItem(CLAVE_SESION),
-
-    // --- DATOS DE OFERTAS ---
-    obtenerOfertas: () => JSON.parse(localStorage.getItem("ofertas") || "[]"),
-    guardarOfertas: (ofertas) => localStorage.setItem("ofertas", JSON.stringify(ofertas)),
-    obtenerDemandas: () => JSON.parse(localStorage.getItem("demandas") || "[]"),
-    guardarDemandas: (demandas) => localStorage.setItem("demandas", JSON.stringify(demandas)),
+    // Borra todo al salir
+    borrarSesion: () => {
+        localStorage.removeItem(CLAVE_TOKEN);
+        localStorage.removeItem(CLAVE_USUARIO);
+    }
 };
 
 
-// --- LÓGICA DE INTERFAZ REUTILIZABLE --- (Evitamos repetir funciones en todos los archivos js)
+// --- LÓGICA DE INTERFAZ REUTILIZABLE --- 
 export function actualizarNavbar() {
-    const emailLogueado = Almacenaje.getSesion();
+    const usuario = Almacenaje.getUsuario();
     const zonaSesion = document.getElementById("zona-sesion");
 
     if (!zonaSesion) return;
 
-    if (emailLogueado) {
+    if (usuario) {
         zonaSesion.innerHTML = `
-            <span class="nav-link mb-0">${emailLogueado}</span>
+            <span class="nav-link mb-0">${usuario.email}</span>
             <button id="btn-logout" class="btn btn-outline-light btn-sm ms-lg-2 mt-2 mt-lg-0" type="button">
                 Cerrar sesión
             </button>

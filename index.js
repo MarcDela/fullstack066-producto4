@@ -2,12 +2,12 @@ const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const http = require('http');
 const conectarDB = require('./config/db'); // Mongoose
 const typeDefs = require('./graphql/typeDefs');
 const resolvers = require('./graphql/resolvers');
 
-// Temporal, implementar variable de entorno y eliminar de aquí
-const SECRETO = process.env.JWT_SECRET || 'MI_CLAVE_SUPER_SECRETA_AGROJOBS';
+const SECRETO = process.env.JWT_SECRET;
 
 async function startServer() {
     const app = express();
@@ -18,15 +18,19 @@ async function startServer() {
     const server = new ApolloServer({
         typeDefs,
         resolvers,
-        // 2. Aquí extraemos al usuario del token para que los resolvers sepan quién es
-        context: ({ req }) => {
+        context: ({ req, connection }) => {
+            // Si hay una conexión de WebSocket (connection), usamos sus datos
+            if (connection) {
+                return connection.context;
+            }
+            // Si es una petición HTTP normal (req), usamos la lógica actual
             const token = req.headers.authorization || '';
             if (token) {
                 try {
                     const usuario = jwt.verify(token.replace('Bearer ', ''), SECRETO);
                     return { usuario }; 
                 } catch (error) {
-                    console.log('Token inválido detectado');
+                    console.log('Token inválido');
                 }
             }
             return {};
@@ -36,11 +40,18 @@ async function startServer() {
     await server.start();
     server.applyMiddleware({ app });
 
+    // --- CONFIGURACIÓN PARA WEBSOCKETS ---
+    // 2. Creamos un servidor HTTP a partir de nuestra 'app' de Express
+    const httpServer = http.createServer(app);
+
+    // Instalamos los manejadores de suscripciones en el servidor HTTP
+    server.installSubscriptionHandlers(httpServer);
+
     // 3. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS
     // Aquí le decimos a Express que busque en la nueva carpeta 'client'
     app.use(express.static(path.join(__dirname, 'client')));
 
-    // 4. RUTAS PARA LOS HTML
+    // RUTAS PARA LOS HTML
     // Esto permite que al entrar a la raíz o a las páginas, se sirvan correctamente
     app.get('/', (req, res) => {
         res.sendFile(path.join(__dirname, 'client', 'index.html'));
@@ -58,11 +69,11 @@ async function startServer() {
         res.sendFile(path.join(__dirname, 'client', 'usuarios.html'));
     });
 
-    // 5. Encendido del servidor
+    // 4. Encendido del servidor
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => {
-        console.log(`🚀 Servidor AgroJobs listo en http://localhost:${PORT}`);
-        console.log(`📊 GraphQL Playground en http://localhost:${PORT}${server.graphqlPath}`);
+    // 5. IMPORTANTE: Ahora el que escucha es 'httpServer', no 'app'
+    httpServer.listen(PORT, () => {
+        console.log(`🚀 Servidor AgroJobs en puerto ${PORT}`);
     });
 }
 

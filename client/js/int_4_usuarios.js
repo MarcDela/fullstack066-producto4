@@ -6,13 +6,9 @@ Prompt 2: "Cómo listar usuarios dinámicamente en una tabla con Bootstrap"
 Prompt 3: "Cómo eliminar elementos de un array usando JavaScript"
 Prompt 4: "Cómo usar addEventListener para registrar eventos de formulario y botones"
 */
-import { usuarios as usuariosIniciales } from "./datos.js";
 import { Almacenaje, actualizarNavbar } from "./almacenaje.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-    if (Almacenaje.obtenerUsuarios().length === 0) {
-        Almacenaje.guardarUsuarios(usuariosIniciales);
-    }
 
     const formularioUsuario = document.getElementById("form-usuario");
     const inputNombre = document.getElementById("nombre");
@@ -30,70 +26,120 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tipo === "ok") mensajeUsuario.classList.add("mensaje-ok");
     }
 
-    function obtenerNuevoId(array) {
-        if (array.length === 0) return 1;
-        const ids = array.map((u) => u.id);
-        return Math.max(...ids) + 1;
-    }
-
-    function pintarUsuarios() {
+    /**
+     * READ: Obtener usuarios desde el Servidor (GraphQL)
+     */
+    async function pintarUsuarios() {
         if (!contenedorUsuarios) return;
 
-        const listaUsuarios = Almacenaje.obtenerUsuarios();
-        let html = "";
+        const query = {
+            query: `
+                query {
+                    obtenerUsuarios {
+                        id
+                        nombre
+                        email
+                        rol
+                    }
+                }
+            `
+        };
 
-        listaUsuarios.forEach((usuario) => {
-            html += `
-                <tr>
-                    <td>${usuario.id}</td>
-                    <td>${usuario.nombre}</td>
-                    <td>${usuario.email}</td>
-                    <td>${usuario.rol}</td>
-                    <td class="text-end">
-                        <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-usuario" data-email="${usuario.email}">
-                            Eliminar
-                        </button>
-                    </td>
-                </tr>
-            `;
-        });
+        try {
+            const respuesta = await fetch('/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(query)
+            });
+            const json = await respuesta.json();
+            const listaUsuarios = json.data.obtenerUsuarios;
 
-        contenedorUsuarios.innerHTML = html;
-        registrarEventosEliminar();
+            let html = "";
+            listaUsuarios.forEach((usuario) => {
+                html += `
+                    <tr>
+                        <td>${usuario.id.substring(0, 8)}...</td>
+                        <td>${usuario.nombre}</td>
+                        <td>${usuario.email}</td>
+                        <td>${usuario.rol}</td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-usuario" data-email="${usuario.email}">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            contenedorUsuarios.innerHTML = html;
+            registrarEventosEliminar();
+        } catch (error) {
+            console.error("Error al obtener usuarios:", error);
+        }
     }
 
     /**
      * EVENTOS: Asocia el click de eliminar a cada botón
      */
     function registrarEventosEliminar() {
-        const botonesEliminar = document.querySelectorAll(".btn-eliminar-usuario");
-        botonesEliminar.forEach((boton) => {
-            boton.onclick = () => {
-                const email = boton.dataset.email;
-                eliminarUsuario(email);
-            };
+        document.querySelectorAll(".btn-eliminar-usuario").forEach((boton) => {
+            boton.onclick = () => eliminarUsuario(boton.dataset.email);
         });
     }
 
     /**
      * CRUD: Eliminar usuario del Storage
      */
-    function eliminarUsuario(email) {
-        // El usuario no puede eliminarse a si mismo estando logueado
-        if (email === Almacenaje.getSesion()) {
-            mostrarMensaje("No puedes eliminar tu propio usuario mientras estás logueado.", "error");
+    async function eliminarUsuario(email) {
+        const usuarioLogueado = Almacenaje.getUsuario();
+
+        // 1. Verificación de Rol, solo un Administrador puede eliminar usuarios
+        if (!usuarioLogueado || usuarioLogueado.rol !== 'Administrador') {
+            mostrarMensaje("Acceso denegado: Solo el Administrador puede eliminar usuarios.", "error");
             return;
         }
 
-        Almacenaje.borrarUsuario(email);
-        pintarUsuarios();
-        mostrarMensaje("Usuario eliminado correctamente.", "ok");
+        // 2. El Administrador no puede eliminarse a si mismo, tan solo lo puede hacer otro admin
+        if (email === usuarioLogueado.email) {
+            mostrarMensaje("No puedes eliminar tu propia cuenta.", "error");
+            return;
+        }
+
+        // Si pasa los filtros, enviamos la Mutation
+        const query = {
+            query: `
+                mutation {
+                    borrarUsuario(email: "${email}")
+                }
+            `
+        };
+
+        try {
+            const respuesta = await fetch('/graphql', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Almacenaje.getToken()}` 
+                },
+                body: JSON.stringify(query)
+            });
+        
+            const resultado = await respuesta.json();
+
+            if (resultado.errors) {
+                mostrarMensaje(resultado.errors[0].message, "error");
+            } else {
+                pintarUsuarios();
+                mostrarMensaje("Usuario eliminado correctamente.", "ok");
+            }
+        } catch (error) {
+            mostrarMensaje("Error de red al intentar eliminar.", "error");
+        }
     }
 
     /**
      * CRUD: Crear usuario y guardar en Storage
      */
-    function crearUsuario(evento) {
+    async function crearUsuario(evento) {
         evento.preventDefault();
 
         const nombre = inputNombre.value.trim();
@@ -118,31 +164,43 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const listaActual = Almacenaje.obtenerUsuarios();
-        const emailRepetido = listaActual.some((u) => u.email === email);
-
-        if (emailRepetido) {
-            mostrarMensaje("Ya existe un usuario con ese correo.", "error");
-            return;
-        }
-
-        // Creamos el objeto
-        const nuevoUsuario = {
-            id: obtenerNuevoId(listaActual),
-            nombre,
-            email,
-            password,
-            rol
+        // Si pasa las validaciones, preparamos la Mutation
+        const query = {
+            query: `
+                mutation {
+                    crearUsuario(nombre: "${nombre}", email: "${email}", password: "${password}", rol: "${rol}") {
+                        id
+                        nombre
+                    }
+                }
+            `
         };
 
-        // Guardamos usando el módulo
-        listaActual.push(nuevoUsuario);
-        Almacenaje.guardarUsuarios(listaActual);
+        try {
+            const respuesta = await fetch('/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(query)
+            });
+            const json = await respuesta.json();
 
-        if (formularioUsuario) formularioUsuario.reset();
-
-        pintarUsuarios();
-        mostrarMensaje("Usuario creado correctamente.", "ok");
+            if (json.errors) {
+                const mensajeError = json.errors[0].message;
+                
+                // En nuestro modelo, email es campo UNIQUE, por lo que si entramos un email ya existente nos da error
+                if (mensajeError.includes("E11000") || mensajeError.includes("ya existe")) {
+                    mostrarMensaje("Ya existe un usuario con ese correo.", "error");
+                } else {
+                    mostrarMensaje(mensajeError, "error");
+                }
+            } else {
+                if (formularioUsuario) formularioUsuario.reset();
+                pintarUsuarios();
+                mostrarMensaje("Usuario guardado correctamente en Atlas.", "ok");
+            }
+        } catch (error) {
+            mostrarMensaje("Error de conexión con el servidor.", "error");
+        }
     }
 
     /* 
