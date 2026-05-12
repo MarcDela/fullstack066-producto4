@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const Usuario = require('../models/Usuarios');
 const Oferta = require('../models/Ofertas');
 const Demanda = require('../models/Demandas');
