@@ -32,6 +32,9 @@ document.addEventListener("DOMContentLoaded", () => {
     async function pintarUsuarios() {
         if (!contenedorUsuarios) return;
 
+        // 1. Obtenemos el usuario actual para verificar permisos
+        const usuarioActual = Almacenaje.getUsuario();
+
         const query = {
             query: `
                 query {
@@ -56,22 +59,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let html = "";
             listaUsuarios.forEach((usuario) => {
+                // 2. LÓGICA DE PERMISOS: Solo el Administrador ve el botón activo
+                const esAdmin = usuarioActual?.rol === 'Administrador';
+                
+                const btnEliminar = esAdmin 
+                    ? `<button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-usuario" data-email="${usuario.email}">
+                            Eliminar
+                       </button>`
+                    : `<span class="text-muted small">Sin permisos</span>`;
+
                 html += `
                     <tr>
                         <td>${usuario.id.substring(0, 8)}...</td>
                         <td>${usuario.nombre}</td>
                         <td>${usuario.email}</td>
-                        <td>${usuario.rol}</td>
+                        <td>>${usuario.rol}</td>
                         <td class="text-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-usuario" data-email="${usuario.email}">
-                                Eliminar
-                            </button>
+                            ${btnEliminar}
                         </td>
                     </tr>
                 `;
             });
-            contenedorUsuarios.innerHTML = html;
-            registrarEventosEliminar();
+
+            contenedorUsuarios.innerHTML = html || `<tr><td colspan="5" class="text-center text-muted">No hay usuarios.</td></tr>`;
+            
+            // 3. Solo registramos eventos si el usuario es Admin (si no, no hay botones que escuchar)
+            if (usuarioActual?.rol === 'Administrador') {
+                registrarEventosEliminar();
+            }
+
         } catch (error) {
             console.error("Error al obtener usuarios:", error);
         }
@@ -94,13 +110,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 1. Verificación de Rol, solo un Administrador puede eliminar usuarios
         if (!usuarioLogueado || usuarioLogueado.rol !== 'Administrador') {
-            mostrarMensaje("Acceso denegado: Solo el Administrador puede eliminar usuarios.", "error");
+            alert("Acceso denegado: Solo el Administrador puede eliminar usuarios.", "error");
             return;
         }
 
         // 2. El Administrador no puede eliminarse a si mismo, tan solo lo puede hacer otro admin
         if (email === usuarioLogueado.email) {
-            mostrarMensaje("No puedes eliminar tu propia cuenta.", "error");
+            alert("No puedes eliminar tu propia cuenta.", "error");
             return;
         }
 
@@ -126,18 +142,18 @@ document.addEventListener("DOMContentLoaded", () => {
             const resultado = await respuesta.json();
 
             if (resultado.errors) {
-                mostrarMensaje(resultado.errors[0].message, "error");
+                alert(resultado.errors[0].message, "error");
             } else {
                 pintarUsuarios();
-                mostrarMensaje("Usuario eliminado correctamente.", "ok");
+                alert("Usuario eliminado correctamente.", "ok");
             }
         } catch (error) {
-            mostrarMensaje("Error de red al intentar eliminar.", "error");
+            alert("Error de red al intentar eliminar.", "error");
         }
     }
 
     /**
-     * CRUD: Crear usuario y guardar en Storage
+     * CRUD: Crear usuario y guardar
      */
     async function crearUsuario(evento) {
         evento.preventDefault();

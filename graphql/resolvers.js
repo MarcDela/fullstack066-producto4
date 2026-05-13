@@ -113,7 +113,25 @@ const resolvers = {
             });
 
             return resultado;
-        }
+        },
+
+        eliminarDemanda: async (_, { id }, context) => {
+            if (!context.usuario) throw new Error("No autenticado");
+
+            const demanda = await Demanda.findById(id);
+            if (!demanda) throw new Error("Demanda no encontrada");
+
+            // Seguridad: Solo el autor o un Administrador
+            if (
+                demanda.autorId.toString() !== context.usuario.id &&
+                context.usuario.rol !== "Administrador"
+            ) {
+                throw new Error("No tienes permiso para borrar esta demanda");
+            }
+
+            await Demanda.findByIdAndDelete(id);
+            return `Demanda ${id} eliminada.`;
+        },
     },
 
     Subscription: {

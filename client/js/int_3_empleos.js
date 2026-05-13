@@ -268,8 +268,8 @@ document.addEventListener("DOMContentLoaded", () => {
             queryStr = `
                 mutation {
                     crearDemanda(
-                        nombre: "${titulo}", 
-                        profesion: "${empresa}", 
+                        nombre: "${empresa}", 
+                        profesion: "${titulo}", 
                         disponibilidad: "${ubicacion}", 
                         descripcion: "${descripcion}"
                     ) { id }

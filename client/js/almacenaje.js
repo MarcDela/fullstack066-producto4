@@ -1,5 +1,5 @@
 const CLAVE_TOKEN = "token_agrojobs";
-const CLAVE_SESION = "usuarioLogueado";
+const CLAVE_USUARIO = "usuarioLogueado";
 
 // --- MÓDULO DE SESION Y SEGURIDAD ---
 export const Almacenaje = {

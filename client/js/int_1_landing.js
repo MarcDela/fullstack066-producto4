@@ -146,75 +146,73 @@ document.addEventListener("DOMContentLoaded", () => {
         pintarDashboard();
     }
 
-    function conectarSuscripciones() {
-        // 1. Detectamos el protocolo: si la web es https, el socket debe ser wss (seguro)
-        const protocolo = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    
-        // 2. Usamos el host actual (que en CodeSandbox será algo como xxxx.csb.app)
-        // 3. Importante: GraphQL suele exponer las suscripciones en /graphql
-        const urlSocket = `${protocolo}//${window.location.host}/graphql`;
+    /**
+     * Funcion WebSockets (Notificaciones)
+     */
+     function conectarSuscripciones() {
+        // Usamos la dirección exacta detectada en tus puertos
+        const urlSocket = "wss://yjt3jy-4000.csb.app/graphql";
+        console.log("🔌 Conectando a:", urlSocket);
 
-        console.log("Conectando WebSocket a:", urlSocket);
+        const socket = new WebSocket(urlSocket, "graphql-transport-ws");
 
-        const socket = new WebSocket(urlSocket, 'graphql-ws');
-    
         socket.onopen = () => {
-            // Al abrirse la conexión, enviamos el "protocolo de inicio" de GraphQL
-            const initMsg = JSON.stringify({ type: 'connection_init', payload: {} });
-            socket.send(initMsg);
-
-            // Enviamos la suscripción para Ofertas
-            const subOferta = JSON.stringify({
-                id: '1',
-                type: 'start',
-                payload: {
-                    query: `subscription { 
-                        ofertaCreada { id titulo empresa ubicacion descripcion fecha } 
-                    }`
-                }
-            });
-            socket.send(subOferta);
-
-            // Enviamos la suscripción para Demandas
-            const subDemanda = JSON.stringify({
-                id: '2',
-                type: 'start',
-                payload: {
-                    query: `subscription { 
-                        demandaCreada { id nombre profesion disponibilidad descripcion fecha } 
-                    }`
-                }
-            });
-            socket.send(subDemanda);
+            console.log("📡 Túnel físico abierto. Validando...");
+            socket.send(JSON.stringify({ type: "connection_init" }));
         };
 
         socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-        
-            // Si recibimos datos de una nueva publicación
-            if (data.type === 'data') {
-                console.log("¡Nueva publicación recibida vía WebSocket!", data.payload.data);
-            
-                // En lugar de refrescar toda la página, simplemente volvemos a pintar 
-                // el dashboard para que la nueva tarjeta aparezca en "Disponibles"
-                pintarDashboard(); 
-            
-                // Opcional: Mostrar un aviso visual al usuario
-                const publicacion = data.payload.data.ofertaCreada || data.payload.data.demandaCreada;
-                const titulo = publicacion.titulo || publicacion.nombre;
-                mostrarNotificacion(`Nueva publicación: ${titulo}`);
+            const msg = JSON.parse(event.data);
+            if (msg.type === "connection_ack") {
+                console.log("✅ ¡CONECTADO AL SERVIDOR!");
+
+            // Suscripciones
+            const enviar = (id, query) =>
+            socket.send(
+                JSON.stringify({
+                id,
+                type: "subscribe",
+                payload: { query },
+                })
+            );
+
+            enviar("1", `subscription { ofertaCreada { id titulo } }`);
+            enviar("2", `subscription { demandaCreada { id nombre } }`);
+        }
+
+        if (msg.type === "next") {
+            console.log("🎉 ¡NUEVA NOTIFICACIÓN!");
+            if (typeof pintarDashboard === "function") pintarDashboard();
             }
+        };
+
+        socket.onclose = () => setTimeout(conectarSuscripciones, 3000);
+
+        socket.onerror = (err) => {
+            console.error("🔥 Error en el WebSocket. Revisa el protocolo (WS/WSS).");
         };
     }
 
-    // Función auxiliar para avisar al usuario
+    // ---  FUNCIÓN DE NOTIFICACIÓN ---
     function mostrarNotificacion(mensaje) {
+        // Eliminamos notificaciones previas para que no se amontonen
+        const vieja = document.querySelector(".custom-toast");
+        if (vieja) vieja.remove();
+
         const toast = document.createElement("div");
-        toast.className = "alert alert-info position-fixed bottom-0 end-0 m-3 shadow";
-        toast.style.zIndex = "9999";
-        toast.innerText = mensaje;
+        toast.className = "custom-toast alert alert-success position-fixed bottom-0 end-0 m-3 shadow-lg";
+        toast.style.zIndex = "10000";
+        toast.style.minWidth = "250px";
+        toast.innerHTML = `<strong>🔔 AgroJobs:</strong><br>${mensaje}`;
+        
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        
+        // Animación de salida
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transition = "opacity 0.5s ease";
+            setTimeout(() => toast.remove(), 500);
+        }, 4000);
     }
 
     actualizarNavbar();
