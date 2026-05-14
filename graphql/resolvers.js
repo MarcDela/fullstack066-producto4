@@ -66,14 +66,17 @@ const resolvers = {
             });
             const resultado = await nuevaOferta.save();
 
-            // 4. WEBSOCKET: Notificamos a todos los suscriptores
-            pubsub.publish('OFERTA_CREADA', { 
-                ofertaCreada: resultado 
-            });
-
+            // 4. SOCKET.IO: Notificamos a todos los clientes conectados
+            if (context.io) {
+                context.io.emit('publicacion_nueva', { 
+                    tipo: 'oferta',
+                    datos: resultado 
+                });
+                console.log("📢 Notificación Socket.io enviada: Nueva Oferta");
+            }
             return resultado;
-
         },
+
 
         eliminarOferta: async (_, { id }, context) => {
             if (!context.usuario) throw new AuthenticationError('No autenticado');
@@ -107,13 +110,17 @@ const resolvers = {
             });
             const resultado = await nuevaDemanda.save();
 
-            // 4. WEBSOCKET: Notificamos a todos los suscriptores
-            pubsub.publish('DEMANDA_CREADA', { 
-                demandaCreada: resultado 
-            });
-
+            // 4. SOCKET.IO: Notificamos a todos los clientes conectados
+            if (context.io) {
+                context.io.emit('publicacion_nueva', { 
+                    tipo: 'demanda',
+                    datos: resultado 
+                });
+                console.log("📢 Notificación Socket.io enviada: Nueva Demanda");
+            }
             return resultado;
         },
+
 
         eliminarDemanda: async (_, { id }, context) => {
             if (!context.usuario) throw new Error("No autenticado");
@@ -133,16 +140,6 @@ const resolvers = {
             return `Demanda ${id} eliminada.`;
         },
     },
-
-    Subscription: {
-        ofertaCreada: {
-            // "Escucha" el canal 'OFERTA_CREADA'
-            subscribe: () => pubsub.asyncIterator(['OFERTA_CREADA'])
-        },
-        demandaCreada: {
-            subscribe: () => pubsub.asyncIterator(['DEMANDA_CREADA'])
-        }
-    }
 };
 
 module.exports = resolvers;

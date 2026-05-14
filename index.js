@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require("express");
 const { ApolloServer } = require("apollo-server-express");
 const { createServer } = require("http");
+const { Server } = require("socket.io");
 const { WebSocketServer } = require("ws");
 const { makeExecutableSchema } = require("@graphql-tools/schema");
 const path = require("path");
@@ -37,62 +38,50 @@ async function startServer() {
   const app = express();
   const httpServer = createServer(app);
 
+  // 2. CONFIGURACIÓN SOCKET.IO 
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "*", // Permite conexiones desde cualquier origen en CodeSandbox
+      methods: ["GET", "POST"]
+    }
+  });
+
+  io.on("connection", (socket) => {
+    console.log("🚀 ¡USUARIO CONECTADO VÍA SOCKET.IO! ID:", socket.id);
+    
+    socket.on("disconnect", () => {
+      console.log("👋 Usuario desconectado de Socket.io");
+    });
+  });
+
   // Conexión a la BBDD
   await conectarDB();
 
   // Esquema para Apollo y WebSockets
   const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-  // 2. CONFIGURACIÓN WEBSOCKET
-  const wsServer = new WebSocketServer({
-    server: httpServer,
-    path: "/graphql",
-  });
-
   if (typeof useServer === "function") {
-    useServer(
-      {
-        schema,
-        onConnect: (ctx) => {
-          console.log("🚀 ¡CONEXIÓN WEBSOCKET DETECTADA EN EL SERVIDOR!");
-          return true;
-        },
-        onSubscribe: (ctx, msg) => {
-          console.log("📡 Suscripción recibida para:", msg.payload.query);
-        },
-      },
-      wsServer
-    );
-    console.log("✅ Motor de suscripciones cargado correctamente.");
-  } else {
-    console.log("❌ Error: No se encontró la función de servidor.");
+    console.log("✅ Motor de suscripciones (Legacy) disponible.");
   }
 
   // 3. APOLLO SERVER
   const server = new ApolloServer({
     schema,
-    plugins: [
-      {
-        async serverWillStart() {
-          return {
-            async drainServer() {
-              if (wsServer) wsServer.close();
-            },
-          };
-        },
-      },
-    ],
     context: ({ req }) => {
+      // Inyectamos 'io' en el contexto para poder usarlo en los resolvers
       const token = req.headers.authorization || "";
+      let usuario = null;
+
       if (token) {
         try {
-          const usuario = jwt.verify(token.replace("Bearer ", ""), SECRETO);
-          return { usuario };
+          usuario = jwt.verify(token.replace("Bearer ", ""), SECRETO);
         } catch (error) {
           console.log("Token inválido");
         }
       }
-      return {};
+      
+      // Retornamos el usuario y la instancia de socket.io
+      return { usuario, io };
     },
   });
 
@@ -121,7 +110,7 @@ async function startServer() {
   // 5. ENCENDIDO
   const PORT = process.env.PORT || 4000;
   httpServer.listen(PORT, () => {
-    console.log(`🚀 Servidor AgroJobs en puerto ${PORT}`);
+    console.log(`🚀 Servidor AgroJobs con Socket.io en puerto ${PORT}`);
   });
 }
 

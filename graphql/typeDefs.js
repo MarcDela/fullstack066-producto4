@@ -57,12 +57,6 @@ const typeDefs = gql`
     # Login
     login(email: String!, password: String!): Autenticacion
   }
-
-  # Subscriptions (Para los WebSockets)
-  type Subscription {
-    ofertaCreada: Oferta
-    demandaCreada: Demanda
-  }
 `;
 
 module.exports = typeDefs;

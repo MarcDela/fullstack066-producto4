@@ -147,50 +147,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Funcion WebSockets (Notificaciones)
+     * Funcion Socket.io (Notificaciones en tiempo real)
      */
-     function conectarSuscripciones() {
-        // Usamos la dirección exacta detectada en tus puertos
-        const urlSocket = "wss://yjt3jy-4000.csb.app/graphql";
-        console.log("🔌 Conectando a:", urlSocket);
+    function conectarSuscripciones() {
+        // Socket.io detecta automáticamente la URL si no le pasamos parámetros,
+        // lo cual es ideal para los proxies de CodeSandbox.
+        const socket = io(); 
 
-        const socket = new WebSocket(urlSocket, "graphql-transport-ws");
+        // OnOpen
+        socket.on("connect", () => {
+            console.log("✅ ¡CONECTADO AL SERVIDOR VÍA SOCKET.IO!");
+        });
 
-        socket.onopen = () => {
-            console.log("📡 Túnel físico abierto. Validando...");
-            socket.send(JSON.stringify({ type: "connection_init" }));
-        };
+        // OnMessage / Escuchamos el evento global que configuramos en los resolvers
+        socket.on("publicacion_nueva", (data) => {
+            console.log("🎉 ¡NUEVA NOTIFICACIÓN RECIBIDA!", data);
 
-        socket.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.type === "connection_ack") {
-                console.log("✅ ¡CONECTADO AL SERVIDOR!");
+            // 1. Refrescamos los datos del dashboard
+            pintarDashboard();
+            
+            // 2. Mostramos el mensaje visual personalizado
+            const texto = data.tipo === 'oferta' 
+                ? `Nueva oferta: ${data.datos.titulo}` 
+                : `Nuevo demanda de: ${data.datos.profesion}`;
+            
+            mostrarNotificacion(texto);
+        });
 
-            // Suscripciones
-            const enviar = (id, query) =>
-            socket.send(
-                JSON.stringify({
-                id,
-                type: "subscribe",
-                payload: { query },
-                })
-            );
+        // OnClose
+        socket.on("disconnect", () => {
+            console.warn("⚠️ Conexión perdida con el servidor. Reconectando...");
+        });
 
-            enviar("1", `subscription { ofertaCreada { id titulo } }`);
-            enviar("2", `subscription { demandaCreada { id nombre } }`);
-        }
-
-        if (msg.type === "next") {
-            console.log("🎉 ¡NUEVA NOTIFICACIÓN!");
-            if (typeof pintarDashboard === "function") pintarDashboard();
-            }
-        };
-
-        socket.onclose = () => setTimeout(conectarSuscripciones, 3000);
-
-        socket.onerror = (err) => {
-            console.error("🔥 Error en el WebSocket. Revisa el protocolo (WS/WSS).");
-        };
+        socket.on("connect_error", (err) => {
+            console.error("🔥 Error de conexión Socket.io:", err.message);
+        });
     }
 
     // ---  FUNCIÓN DE NOTIFICACIÓN ---
