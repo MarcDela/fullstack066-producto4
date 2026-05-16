@@ -1,0 +1,38 @@
+{
+  "name": "fullstack066-producto3",
+  "version": "1.0.0",
+  "description": "Aplicación web frontend desarrollada como prototipo de gestión de ofertas y demandas de empleo en el sector agrícola.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarcDela/fullstack066-producto3.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MarcDela/fullstack066-producto3/issues"
+  },
+  "homepage": "https://github.com/MarcDela/fullstack066-producto3#readme",
+  "dependencies": {
+    "apollo-server-express": "^3.13.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.17.1",
+    "graphql": "^16.13.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.2.0",
+    "mongoose": "^9.6.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

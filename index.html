@@ -1,0 +1,114 @@
+<!--
+IA utilizada: ChatGPT
+
+Prompt 1: "Crea un dashboard de empleo moderno con Bootstrap, hero section, navbar y tarjetas visuales"
+Prompt 2: "Cómo diferenciar visualmente ofertas y demandas de empleo usando Bootstrap y CSS"
+Prompt 3: "Cómo estructurar una página principal con buscador y grid de tarjetas responsive"
+Prompt 4: "Cómo mejorar una landing page de empleo con un estilo inspirado en InfoJobs y JobToday"
+-->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroJobs</title>
+
+    <link rel="icon" type="image/png" href="img/favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container">
+            <a class="navbar-brand logo d-flex align-items-center" href="index.html">
+                <span>Agro</span>
+                <span class="logo-icon"></span>
+                <span>Jobs</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir navegación">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="menuPrincipal">
+                <div class="navbar-nav ms-auto align-items-lg-center" id="navbar-links">
+                    <a class="nav-link active" href="index.html">Dashboard</a>
+                    <a class="nav-link" href="ofertas.html">Ofertas</a>
+                    <a class="nav-link" href="usuarios.html">Usuarios</a>
+                    <span id="zona-sesion" class="d-flex align-items-lg-center flex-column flex-lg-row"></span>
+                </div>  
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero-section">
+        <div class="container">
+            <div class="hero-box">
+                <div class="row align-items-center g-4">
+                    <div class="col-lg-6">
+                        <span class="hero-tag">Portal de empleo</span>
+                        <h1 class="display-5 fw-bold mt-3">Encuentra empleo o talento fácilmente</h1>
+                        <p class="lead text-secondary mt-3">
+                            Consulta ofertas de empleo y demandas laborales desde un mismo dashboard visual y claro.
+                        </p>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="search-panel shadow-sm">
+                            <h2 class="h5 mb-3">Buscar en la plataforma</h2>
+                            <form>
+                                <div class="row g-3">
+                                    <div class="col-md-5">
+                                        <label for="busqueda" class="form-label">Puesto o palabra clave</label>
+                                        <input type="text" id="busqueda" class="form-control" placeholder="Ej. diseñador, soporte, marketing">
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="ubicacion" class="form-label">Ubicación</label>
+                                        <input type="text" id="ubicacion" class="form-control" placeholder="Ej. Barcelona">
+                                    </div>
+
+                                    <div class="col-md-3 d-grid align-self-end">
+                                        <button type="button" class="btn btn-primary">Buscar</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container py-5">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Dashboard de empleo de AgroJobs</h2>
+                <p class="text-muted mb-0">Organiza tus intereses arrastrando las tarjetas.</p>
+            </div>
+
+            <div class="d-flex gap-2">
+                <span class="legend-badge legend-oferta">Ofertas</span>
+                <span class="legend-badge legend-demanda">Demandas</span>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-7">
+                <h5 class="mb-3"><i class="bi bi-list-ul"></i> Disponibles</h5>
+                <div id="contenedor-disponibles" class="row g-3 zona-drop p-2 rounded bg-light"></div>
+            </div>
+
+            <div class="col-md-5">
+                <h5 class="mb-3"><i class="bi bi-star-fill"></i> Mi Selección</h5>
+                <div id="contenedor-seleccionados" class="row g-3 zona-drop p-2 rounded border border-dashed border-primary mt-2"></div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/int_1_landing.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
