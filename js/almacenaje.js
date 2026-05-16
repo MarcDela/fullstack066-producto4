@@ -1,5 +1,6 @@
 const CLAVE_USUARIOS = "usuarios";
 const CLAVE_SESION = "usuarioLogueado";
+const GQL_URL = "http://localhost:4000/graphql";
 
 // --- MÓDULO CRUD Y STORAGE ---
 export const Almacenaje = {
@@ -24,15 +25,77 @@ export const Almacenaje = {
     },
 
     // --- DATOS DE SESION ---
-    getSesion: () => localStorage.getItem(CLAVE_SESION),
-    setSesion: (email) => localStorage.setItem(CLAVE_SESION, email),
-    borrarSesion: () => localStorage.removeItem(CLAVE_SESION),
+  // --- DATOS DE SESION ---
+    getSesion: () => localStorage.getItem(CLAVE_SESION), 
+    getToken: () => localStorage.getItem("token_agrojobs"), 
+    setSesion: (token, email) => {
+        localStorage.setItem("token_agrojobs", token);
+        localStorage.setItem(CLAVE_SESION, email);
+    },
+    borrarSesion: () => {
+        localStorage.removeItem("token_agrojobs");
+        localStorage.removeItem(CLAVE_SESION);
+    },
 
     // --- DATOS DE OFERTAS ---
-    obtenerOfertas: () => JSON.parse(localStorage.getItem("ofertas") || "[]"),
-    guardarOfertas: (ofertas) => localStorage.setItem("ofertas", JSON.stringify(ofertas)),
-    obtenerDemandas: () => JSON.parse(localStorage.getItem("demandas") || "[]"),
-    guardarDemandas: (demandas) => localStorage.setItem("demandas", JSON.stringify(demandas)),
+   obtenerOfertas: async () => {
+        try {
+            const respuesta = await fetch(GQL_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `query { obtenerOfertas { id titulo empresa ubicacion descripcion fecha } }`
+                })
+            });
+            const { data } = await respuesta.json();
+            return data.obtenerOfertas;
+        } catch (error) {
+            console.error("Error ofertas:", error);
+            return [];
+        }
+    },
+
+    crearOferta: async (titulo, empresa, ubicacion, descripcion) => {
+        const respuesta = await fetch(GQL_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `mutation { crearOferta(titulo: "${titulo}", empresa: "${empresa}", ubicacion: "${ubicacion}", descripcion: "${descripcion}") { id } }`
+            })
+        });
+        const { data } = await respuesta.json();
+        return data.crearOferta;
+    },
+
+    // --- DATOS DE DEMANDAS (GraphQL) ---
+    obtenerDemandas: async () => {
+        try {
+            const respuesta = await fetch(GQL_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `query { obtenerDemandas { id nombre profesion disponibilidad descripcion fecha } }`
+                })
+            });
+            const { data } = await respuesta.json();
+            return data.obtenerDemandas;
+        } catch (error) {
+            console.error("Error demandas:", error);
+            return [];
+        }
+    },
+
+    crearDemanda: async (nombre, profesion, disponibilidad, descripcion) => {
+        const respuesta = await fetch(GQL_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `mutation { crearDemanda(nombre: "${nombre}", profesion: "${profesion}", disponibilidad: "${disponibilidad}", descripcion: "${descripcion}") { id } }`
+            })
+        });
+        const { data } = await respuesta.json();
+        return data.crearDemanda;
+    }
 };
 
 

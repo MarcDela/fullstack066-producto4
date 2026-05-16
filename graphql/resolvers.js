@@ -4,9 +4,9 @@ const { AuthenticationError, UserInputError } = require('apollo-server-express')
 const SECRETO = 'MI_CLAVE_SUPER_SECRETA_AGROJOBS';
 
 //Importaciones para funcionamiento Mongoose:
-const Usuario = require('./models/Usuario');
-const Oferta = require('./models/Oferta');
-const Demanda = require('./models/Demanda');
+const Usuario = require('../models/Usuario');
+const Oferta = require('../models/Oferta');
+const Demanda = require('../models/Demanda');
 
 const resolvers = {
 
