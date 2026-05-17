@@ -1,12 +1,3 @@
-/*
-IA utilizada: ChatGPT
-
-Prompt 1: "Cómo crear y renderizar ofertas y demandas con JavaScript y arrays"
-Prompt 2: "Cómo usar un formulario para añadir elementos a un array en JavaScript"
-Prompt 3: "Cómo eliminar tarjetas dinámicas con addEventListener y data attributes"
-Prompt 4: "Cómo mostrar ofertas y demandas con estilos diferentes usando Bootstrap"
-*/
-
 import { ofertas as ofertasIniciales, demandas as demandasIniciales } from "./datos.js";
 import { Almacenaje, actualizarNavbar } from "./almacenaje.js";
 
@@ -32,10 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         mensajeOferta.classList.add(tipo === "error" ? "mensaje-error" : "mensaje-ok");
     }
 
-    /* 
-    Cambiada la funcion para generar ID's unicos independientemente de que sean ofertas o demandas, de esta manera, 
-    se gestiona mejor el drag and drop 
-    */
+
     function obtenerNuevoId() {
         const ofertas = Almacenaje.obtenerOfertas();
         const demandas = Almacenaje.obtenerDemandas();
@@ -44,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (todos.length === 0) return 1;
 
-        // Buscamos el ID más alto entre TODOS
+        //Buscamos el ID más alto entre TODOS
         return Math.max(...todos.map(e => e.id)) + 1;
     }
 
@@ -161,7 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Eliminados arrays de entrada de obtenerNuevoId porque este ahora ya consulta ambos automáticamente
         if (tipo === "oferta") {
             const lista = Almacenaje.obtenerOfertas();
             lista.push({ id: obtenerNuevoId(), ...datos });
@@ -185,9 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
         mostrarMensaje("Publicado con éxito", "ok");
     }
 
-    /*
-    Función para obtener la fecha automáticamente y formatearla a String
-    */
+   
     function obtenerFechaActual() {
         const hoy = new Date();
         const dia = String(hoy.getDate()).padStart(2, '0');
@@ -197,9 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return `${dia}/${mes}/${anio}`;
     }
 
-    /*
-    Función para dibujar el gráfico canvas
-    */
+
     function dibujarGrafico() {
         const canvas = document.getElementById("grafico-stats");
         if (!canvas) return;
@@ -208,19 +191,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const numOfertas = Almacenaje.obtenerOfertas().length;
         const numDemandas = Almacenaje.obtenerDemandas().length;
 
-        // 1. Limpiar el canvas antes de redibujar
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 2. Configuración de dimensiones
         const margen = 50;
         const anchoBarra = 80;
         const alturaMax = canvas.height - (margen * 2);
-    
-        // Calcular escala (para que las barras no se salgan si hay muchos datos)
+
         const maxDatos = Math.max(numOfertas, numDemandas, 1); 
         const escala = alturaMax / maxDatos;
 
-        // 3. Dibujar Ejes
         ctx.beginPath();
         ctx.strokeStyle = "#333";
         ctx.lineWidth = 2;
@@ -229,29 +208,26 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.lineTo(canvas.width - margen, canvas.height - margen); // Eje X
         ctx.stroke();
 
-        /**
-        * Función interna para dibujar cada barra
-        */
+    
         function dibujarBarra(x, valor, color, etiqueta) {
             const h = valor * escala;
             const y = (canvas.height - margen) - h;
 
-            // Dibujar la barra
+   
             ctx.fillStyle = color;
             ctx.fillRect(x, y, anchoBarra, h);
 
-            // Texto del valor (encima de la barra)
+   
             ctx.fillStyle = "#000";
             ctx.font = "bold 14px Arial";
             ctx.textAlign = "center";
             ctx.fillText(valor, x + (anchoBarra / 2), y - 10);
 
-            // Etiqueta (debajo de la barra)
+      
             ctx.font = "12px Arial";
             ctx.fillText(etiqueta, x + (anchoBarra / 2), canvas.height - (margen / 2));
         }
 
-        // 4. Pintar las barras (Ofertas en Azul, Demandas en Verde)
         dibujarBarra(margen + 50, numOfertas, "#0d6efd", "Ofertas");
         dibujarBarra(margen + 180, numDemandas, "#198754", "Demandas");
     }

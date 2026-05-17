@@ -1,44 +1,47 @@
-/*
-IA utilizada: ChatGPT
 
-Prompt 1: "Cómo pintar tarjetas dinámicas con JavaScript a partir de arrays"
-Prompt 2: "Cómo mostrar ofertas y demandas en un dashboard con Bootstrap"
-Prompt 3: "Cómo crear tarjetas visuales con imágenes placeholder en JavaScript"
-Prompt 4: "Cómo mostrar usuario logueado y botón cerrar sesión en la navbar"
-*/
-
-import { ofertas as ofertasIniciales, demandas as demandasIniciales } from "./datos.js";
 import { Almacenaje, actualizarNavbar } from "./almacenaje.js";
 
-document.addEventListener("DOMContentLoaded", () => {
+const GQL_URL = "http://localhost:4000/graphql";
+
+document.addEventListener("DOMContentLoaded", async () => {
     const contenedorDisponibles = document.getElementById("contenedor-disponibles");
     const contenedorSeleccionados = document.getElementById("contenedor-seleccionados");
+    
+    //Función global para imprimir las targetas
+   async function pintarDashboard() {
+        try {
+            //Solicitud ofertas/demandas de empleo
+            const respuesta = await fetch(GQL_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `
+                        query {
+                            obtenerOfertas { id titulo empresa ubicacion descripcion fecha }
+                            obtenerDemandas { id nombre profesion disponibilidad descripcion fecha }
+                        }
+                    `
+                })
+            });
 
-    if (Almacenaje.obtenerOfertas().length === 0) {
-        Almacenaje.guardarOfertas(ofertasIniciales);
-    }
-    if (Almacenaje.obtenerDemandas().length === 0) {
-        Almacenaje.guardarDemandas(demandasIniciales);
-    }
+            const { data } = await respuesta.json();
+            const ofertas = data.obtenerOfertas || [];
+            const demandas = data.obtenerDemandas || [];
+            const todas = [...ofertas, ...demandas];
 
-    // Función global para printear las tarjetas en ambas secciones
-    function pintarDashboard() {
+            const seleccionadosIds = JSON.parse(localStorage.getItem("dashboard_seleccionados") || "[]");
+            // 1. Añadir el filtrado que faltaba para separar las tarjetas
+            const disponibles = todas.filter(item => !seleccionadosIds.includes(item.id));
+            const seleccionados = todas.filter(item => seleccionadosIds.includes(item.id));
+            // 2. Añadir las llamadas para pintar las zonas
+            renderizarZona(contenedorDisponibles, disponibles, "No hay más publicaciones disponibles.");
+            renderizarZona(contenedorSeleccionados, seleccionados, "Arrastra aquí tus publicaciones favoritas.");
+            // 3. Añadir la activación del arrastrar y soltar
+            configurarEventosDrag();
 
-        const ofertas = Almacenaje.obtenerOfertas();
-        const demandas = Almacenaje.obtenerDemandas();
-        const todas = [...ofertas, ...demandas];
-
-        // IDs que ha seleccionado el usuario (en una nueva clave del storage)
-        const seleccionadosIds = JSON.parse(localStorage.getItem("dashboard_seleccionados") || "[]");
-
-        // Filtramos en que lado deben estar
-        const disponibles = todas.filter(item => !seleccionadosIds.includes(item.id));
-        const seleccionados = todas.filter(item => seleccionadosIds.includes(item.id));
-
-        renderizarZona(contenedorDisponibles, disponibles, "No hay más publicaciones disponibles.");
-        renderizarZona(contenedorSeleccionados, seleccionados, "Arrastra aquí tus publicaciones favoritas.");
-
-        configurarEventosDrag();
+        } catch (error) {
+            console.error("Error al cargar el Dashboard:", error);
+        }
     }
 
     function renderizarZona(contenedor, lista, mensajeVacio) {
@@ -101,10 +104,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         zona.ondragleave = () => zona.classList.remove("drag-over");
 
-        zona.ondrop = (e) => {
+      zona.ondrop = (e) => {
             e.preventDefault();
             zona.classList.remove("drag-over");
-            const id = Number(e.dataTransfer.getData("text/plain"));
+            const id = e.dataTransfer.getData("text/plain"); 
             if (id) {
                 actualizarEstadoSeleccion(id, zona.id === "contenedor-seleccionados");
             }
@@ -129,5 +132,5 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     actualizarNavbar();
-    pintarDashboard();
+    await pintarDashboard();
 });
