@@ -1,0 +1,31 @@
+# Docker Compose para desarrollo local (opcional)
+# La aplicación usa MongoDB Atlas en producción/CodeSandbox
+# Este archivo permite levantar MongoDB local si se prefiere
+
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/agrojobsDB
+      - JWT_SECRET=agrojobs_jwt_secret_key_2024_producto4
+      - PORT=4000
+      - NODE_ENV=development
+    depends_on:
+      - mongo
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
