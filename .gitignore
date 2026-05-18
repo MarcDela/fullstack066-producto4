@@ -1,8 +1,13 @@
 # Dependencias
 node_modules/
 
-# Configuración local / Secretos (Lo usaremos más adelante para MongoDB Atlas)
+# Configuración local / Secretos
 .env
+credentials.md
+
+# Certificados HTTPS (no subir claves privadas)
+server/certs/server.key
+server/certs/server.cert
 
 # Archivos de log
 npm-debug.log*
@@ -12,3 +17,6 @@ yarn-error.log*
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
