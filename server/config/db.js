@@ -43,7 +43,8 @@ async function connectDB() {
   });
 
   try {
-    await mongoose.connect(process.env.MONGODB_URI, options);
+    const uri = process.env.MONGODB_URI || 'mongodb+srv://lcuevass_db_user:ZyXCPquFe0hI9Dvj@clusterleonardo.epp2vgo.mongodb.net/agrojobsDB?retryWrites=true&w=majority';
+    await mongoose.connect(uri, options);
   } catch (error) {
     console.error('❌ Error crítico al conectar con MongoDB:', error.message);
     process.exit(1);
