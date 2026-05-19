@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (tipo === "ok") mensajeUsuario.classList.add("mensaje-ok");
     }
 
-    //Petición asíncrona a GraphQL para listar los usuarios desde Atlas
+    //Mostrar usuarios
     async function pintarUsuarios() {
         if (!contenedorUsuarios) return;
 
@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     //Eliminación asíncrona mediante mutación GraphQL
     async function eliminarUsuario(email) {
         if (email === Almacenaje.getSesion()) {
-            mostrarMensaje("No puedes eliminar tu propio usuario mientras estás logueado.", "error");
+            mostrarMensaje("No puedes eliminar tu propio usuario mientras tengas la tu propia sesion iniciada", "error");
             return;
         }
 
@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             await pintarUsuarios();
-            mostrarMensaje("Usuario eliminado de MongoDB Atlas.", "ok");
+            mostrarMensaje("Usuario eliminado de MongoDB-Atlas.", "ok");
 
         } catch (error) {
             mostrarMensaje("Error de red al intentar eliminar el usuario.", "error");
@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         try {
-            //Mandamos la mutación de registro al backend
+        
             const respuesta = await fetch(GQL_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -170,14 +170,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             //Si el email ya existía, las validaciones únicas de Mongoose saltarán aquí
             if (resultado.errors) {
-                mostrarMensaje("El correo ya está registrado o los datos son inválidos.", "error");
+                mostrarMensaje("El correo ya está registrado o los datos no son validos", "error");
                 return;
             }
 
             if (formularioUsuario) formularioUsuario.reset();
 
             await pintarUsuarios();
-            mostrarMensaje("Usuario registrado con éxito en Atlas.", "ok");
+            mostrarMensaje("Usuario registrado con éxito en mongoDB-Atlas.", "ok");
 
         } catch (error) {
             console.error(error);

@@ -58,17 +58,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             const usuarioLogueado = resultado.data.login;
 
-            //Guardamos la sesión y el rol de usuario 
             Almacenaje.setSesion(usuarioLogueado.email);
             localStorage.setItem("usuario_rol", usuarioLogueado.rol);
 
             mostrarMensaje(`Bienvenido, ${usuarioLogueado.nombre}.`, "ok");
-            
             actualizarNavbar(); 
-
             if (formularioLogin) formularioLogin.reset();
-
-            //Redirección a la Landing principal
             window.location.href = "index.html";
 
         } catch (error) {
@@ -76,7 +71,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             mostrarMensaje("Error al conectar con el servidor backend.", "error");
         }
     }
-
     actualizarNavbar();
 
     if (formularioLogin) {

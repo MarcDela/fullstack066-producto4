@@ -1,5 +1,4 @@
 import { Almacenaje, actualizarNavbar } from "./almacenaje.js";
-
 const GQL_URL = "http://localhost:4000/graphql";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -10,12 +9,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inputEmpresa = document.getElementById("empresa");
     const inputUbicacion = document.getElementById("ubicacion");
     const inputDescripcion = document.getElementById("descripcion");
-    const mensajeOferta = document.getElementById("mensaje-offer"); // Asegurar coincidencia con ID HTML
-    const mensajeGeneral = document.getElementById("mensaje-oferta"); // Fallback
+    const mensajeOferta = document.getElementById("mensaje-offer"); 
+    const mensajeGeneral = document.getElementById("mensaje-oferta"); 
     const contenedorOfertas = document.getElementById("contenedor-ofertas");
     const tablaOfertas = document.getElementById("tabla-ofertas");
 
-    // Arrays en memoria local para alimentar el gráfico Canvas dinámicamente
+    //Datos para el gráfico de ofertas/demandas
     let ofertasLocales = [];
     let demandasLocales = [];
 
@@ -27,10 +26,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         elemento.classList.add(tipo === "error" ? "mensaje-error" : "mensaje-ok");
     }
 
-    // Petición asíncrona para obtener las publicaciones aplicando filtros por Rol
     async function pintarPublicaciones() {
         const emailUsuario = Almacenaje.getSesion();
-        const rolUsuario = localStorage.getItem("usuario_role") || localStorage.getItem("usuario_rol");
+        const rolUsuario = localStorage.getItem("usuario_rol") || localStorage.getItem("usuario_rol");
 
         try {
             const respuesta = await fetch(GQL_URL, {
@@ -39,8 +37,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 body: JSON.stringify({
                     query: `
                         query {
-                            obtenerOfertas { id titulo empresa ubicacion descripcion fecha autorEmail }
-                            obtenerDemandas { id nombre profesion disponibilidad descripcion fecha autorEmail }
+                            obtenerOfertas {id titulo empresa ubicacion descripcion fecha autorEmail} 
+                            obtenerDemandas {id nombre profesion disponibilidad descripcion fecha autorEmail }
                         }
                     `
                 })
@@ -50,13 +48,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             let ofertas = data.obtenerOfertas || [];
             let demandas = data.obtenerDemandas || [];
 
-            // REQUISITO ENUNCIADO: Si no es admin, solo ve lo que ha publicado él mismo
+            //Rol adminisitrador
             if (rolUsuario !== "admin") {
                 ofertas = ofertas.filter(o => o.autorEmail === emailUsuario);
                 demandas = demandas.filter(d => d.autorEmail === emailUsuario);
             }
 
-            // Guardamos en memoria para el Canvas
             ofertasLocales = ofertas;
             demandasLocales = demandas;
             
@@ -66,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             dibujarGrafico();
 
         } catch (error) {
-            console.error("Error al sincronizar con MongoDB Atlas:", error);
+            console.error("Error al sincronizar con BBDD MongoDB-Atlas:", error);
             mostrarMensaje("No se pudieron cargar los datos del servidor.", "error");
         }
     }
@@ -194,7 +191,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         try {
             let queryMutation = "";
-
             if (tipo === "oferta") {
                 queryMutation = `
                     mutation {
@@ -222,11 +218,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-            formularioOffer.reset(); // Intento reset formulario original
+            formularioOffer.reset(); //Rseteo formulario inicial
             if (formularioOferta) formularioOferta.reset();
             
             await pintarPublicaciones();
-            mostrarMensaje("Publicado con éxito en la nube Atlas", "ok");
+            mostrarMensaje("Publicado en la nube Atlas", "ok");
 
         } catch (error) {
             console.error(error);

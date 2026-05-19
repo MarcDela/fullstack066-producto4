@@ -1,8 +1,16 @@
 import { ofertas as ofertasIniciales, demandas as demandasIniciales } from "./datos.js";
 import { Almacenaje, actualizarNavbar } from "./almacenaje.js";
 
-document.addEventListener("DOMContentLoaded", () => {
-    // 1. Sincronización inicial con LocalStorage
+// Conexión con el servidor de WebSockets
+const socket = io("http://localhost:4000");
+
+document.addEventListener("DOMContentLoaded", async () => {
+    
+    socket.on("actualizar_interfaz_empleos", async () => {
+        console.log("WebSockets avisa: La base de datos ha cambiado.");
+        pintarPublicaciones(); 
+    });
+
     if (Almacenaje.obtenerOfertas().length === 0) Almacenaje.guardarOfertas(ofertasIniciales);
     if (Almacenaje.obtenerDemandas().length === 0) Almacenaje.guardarDemandas(demandasIniciales);
 
@@ -23,16 +31,11 @@ document.addEventListener("DOMContentLoaded", () => {
         mensajeOferta.classList.add(tipo === "error" ? "mensaje-error" : "mensaje-ok");
     }
 
-
     function obtenerNuevoId() {
         const ofertas = Almacenaje.obtenerOfertas();
         const demandas = Almacenaje.obtenerDemandas();
-    
         const todos = [...ofertas, ...demandas];
-
         if (todos.length === 0) return 1;
-
-        //Buscamos el ID más alto entre TODOS
         return Math.max(...todos.map(e => e.id)) + 1;
     }
 
@@ -120,19 +123,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 Almacenaje.guardarOfertas(lista);
                 pintarPublicaciones();
                 mostrarMensaje("Oferta eliminada", "ok");
+                
+                socket.emit("empleos_alterados");
             };
         });
+        
         document.querySelectorAll(".btn-eliminar-demanda").forEach(b => {
             b.onclick = () => {
                 const lista = Almacenaje.obtenerDemandas().filter(d => d.id !== Number(b.dataset.id));
                 Almacenaje.guardarDemandas(lista);
                 pintarPublicaciones();
                 mostrarMensaje("Demanda eliminada", "ok");
+          
+                socket.emit("empleos_alterados");
             };
         });
     }
 
-    function crearPublicacion(evento) {
+    async function crearPublicacion(evento) {
         evento.preventDefault();
         const tipo = inputTipo.value;
         const fechaActual = obtenerFechaActual();
@@ -153,7 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const lista = Almacenaje.obtenerOfertas();
             lista.push({ id: obtenerNuevoId(), ...datos });
             Almacenaje.guardarOfertas(lista);
-
         } else {
             const lista = Almacenaje.obtenerDemandas();
             lista.push({ 
@@ -170,18 +177,17 @@ document.addEventListener("DOMContentLoaded", () => {
         formularioOferta.reset();
         pintarPublicaciones();
         mostrarMensaje("Publicado con éxito", "ok");
+
+        socket.emit("empleos_alterados");
     }
 
-   
     function obtenerFechaActual() {
         const hoy = new Date();
         const dia = String(hoy.getDate()).padStart(2, '0');
         const mes = String(hoy.getMonth() + 1).padStart(2, '0');
         const anio = hoy.getFullYear();
-
         return `${dia}/${mes}/${anio}`;
     }
-
 
     function dibujarGrafico() {
         const canvas = document.getElementById("grafico-stats");
@@ -203,27 +209,23 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.beginPath();
         ctx.strokeStyle = "#333";
         ctx.lineWidth = 2;
-        ctx.moveTo(margen, margen); // Eje Y
-        ctx.lineTo(margen, canvas.height - margen); // Esquina
-        ctx.lineTo(canvas.width - margen, canvas.height - margen); // Eje X
+        ctx.moveTo(margen, margen); 
+        ctx.lineTo(margen, canvas.height - margen); 
+        ctx.lineTo(canvas.width - margen, canvas.height - margen); 
         ctx.stroke();
 
-    
         function dibujarBarra(x, valor, color, etiqueta) {
             const h = valor * escala;
             const y = (canvas.height - margen) - h;
 
-   
             ctx.fillStyle = color;
             ctx.fillRect(x, y, anchoBarra, h);
 
-   
             ctx.fillStyle = "#000";
             ctx.font = "bold 14px Arial";
             ctx.textAlign = "center";
             ctx.fillText(valor, x + (anchoBarra / 2), y - 10);
 
-      
             ctx.font = "12px Arial";
             ctx.fillText(etiqueta, x + (anchoBarra / 2), canvas.height - (margen / 2));
         }
@@ -231,8 +233,9 @@ document.addEventListener("DOMContentLoaded", () => {
         dibujarBarra(margen + 50, numOfertas, "#0d6efd", "Ofertas");
         dibujarBarra(margen + 180, numDemandas, "#198754", "Demandas");
     }
-
+    
     actualizarNavbar();
     pintarPublicaciones();
+    
     if (formularioOferta) formularioOferta.addEventListener("submit", crearPublicacion);
 });
