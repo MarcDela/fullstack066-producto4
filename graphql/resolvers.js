@@ -139,6 +139,12 @@ const resolvers = {
             await Demanda.findByIdAndDelete(id);
             return `Demanda ${id} eliminada.`;
         },
+
+        borrarUsuario: async (_, { email }) => {
+            await Usuario.findOneAndDelete({ email });
+            
+            return `Usuario ${email} eliminado.`;
+        },
     },
 };
 
