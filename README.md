@@ -141,9 +141,6 @@ GraphQL Playground disponible en `http://localhost:4000/graphql`.
 
 ## Mapa Conceptual
 
-*(Incluir foto/escaneo del mapa conceptual dibujado a mano)*
-
-Conceptos incluidos:
 - Fullstack, Mongoose (Schema/Model/Validaciones)
 - Fetch API, WebSockets/Socket.io, RBAC, JWT, HTTPS, PUB/SUB
 - Flujo: Frontend (Fetch/Socket.io) → Express → GraphQL → Mongoose → MongoDB Atlas
