@@ -18,10 +18,6 @@ Aplicación web fullstack de gestión de ofertas y demandas de empleo en el sect
 
 🎥 YouTube: https://youtu.be/6xGMJL0bweM
 
-### 5.3 GitHub
-
-📂 Repositorio común: https://github.com/MarcDela/fullstack066-producto4
-
 ---
 
 ## 🔐 Credenciales de prueba
