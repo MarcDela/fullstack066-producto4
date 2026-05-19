@@ -48,6 +48,9 @@ async function startServer() {
     typeDefs,
     resolvers,
     context: ({ req }) => ({ req }),
+    // Habilitar Apollo Sandbox/Playground en producción
+    introspection: true,
+    csrfPrevention: false,
     formatError: (error) => {
       // Log del error en servidor
       console.error('GraphQL Error:', error.message);
