@@ -1,0 +1,24 @@
+{
+  "name": "producto4-agrojobs-backend",
+  "version": "1.0.0",
+  "description": "Backend Producto 4 FullStack con Express, GraphQL, Mongoose, JWT, roles y Socket.io",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "apollo-server-express": "^3.13.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "graphql": "^16.10.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": { "nodemon": "^3.1.9" }
+}

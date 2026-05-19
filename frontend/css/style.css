@@ -1,0 +1,21 @@
+:root { font-family: Arial, sans-serif; color: #19321f; background: #f3f7ef; }
+body { margin: 0; }
+.header { background: #2d6a35; color: white; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { margin: 0; }
+.header a { color: white; margin-left: 16px; text-decoration: none; font-weight: bold; }
+main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+.card { background: white; border-radius: 16px; padding: 22px; margin-bottom: 22px; box-shadow: 0 10px 28px #0001; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+input, textarea { padding: 12px; border: 1px solid #bfd1bf; border-radius: 10px; font: inherit; }
+textarea { min-height: 48px; }
+button { background: #2d6a35; color: white; border: 0; border-radius: 10px; padding: 12px 16px; cursor: pointer; font-weight: bold; }
+button.secundario { background: #58625a; margin-top: 12px; }
+.lista { display: grid; gap: 12px; }
+.item { border: 1px solid #d8e3d3; border-radius: 12px; padding: 14px; background: #fbfdf9; }
+.item h3 { margin: 0 0 8px; }
+.mini { color: #607060; font-size: .9rem; }
+.error { color: #a51616; }
+.ok { color: #237c2d; }
+.oculto { display: none !important; }
+pre { white-space: pre-wrap; background: #101812; color: #d8ffe0; padding: 14px; border-radius: 12px; min-height: 50px; }

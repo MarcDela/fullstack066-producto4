@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgroJobs Producto 4</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>AgroJobs Producto 4</h1>
+    <nav>
+      <a href="#ofertas">Ofertas</a>
+      <a href="#demandas">Demandas</a>
+      <a href="#usuarios" id="navUsuarios" class="oculto">Usuarios</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card auth-card">
+      <div>
+        <h2>Acceso</h2>
+        <p id="estadoSesion">No has iniciado sesión.</p>
+        <p id="estadoSocket" class="mini">Socket.io pendiente...</p>
+      </div>
+      <div class="grid2">
+        <form id="loginForm">
+          <h3>Login</h3>
+          <input id="loginEmail" type="email" placeholder="Email" value="admin@test.com" required />
+          <input id="loginPassword" type="password" placeholder="Password" value="123456" required />
+          <button>Entrar</button>
+        </form>
+        <form id="registroForm">
+          <h3>Registro</h3>
+          <input id="regNombre" placeholder="Nombre" required />
+          <input id="regEmail" type="email" placeholder="Email" required />
+          <input id="regPassword" type="password" placeholder="Password mínimo 6" required />
+          <button>Registrar usuario</button>
+        </form>
+      </div>
+      <button id="logoutBtn" class="secundario">Cerrar sesión</button>
+    </section>
+
+    <section id="ofertas" class="card">
+      <h2>Ofertas de empleo</h2>
+      <form id="ofertaForm" class="form-grid">
+        <input id="ofertaTitulo" placeholder="Título" required />
+        <input id="ofertaEmpresa" placeholder="Empresa" required />
+        <input id="ofertaUbicacion" placeholder="Ubicación" required />
+        <input id="ofertaSalario" type="number" placeholder="Salario" />
+        <textarea id="ofertaDescripcion" placeholder="Descripción"></textarea>
+        <button>Crear oferta</button>
+      </form>
+      <div id="listaOfertas" class="lista"></div>
+    </section>
+
+    <section id="demandas" class="card">
+      <h2>Demandas de empleo</h2>
+      <form id="demandaForm" class="form-grid">
+        <input id="demandaNombre" placeholder="Nombre" required />
+        <input id="demandaProfesion" placeholder="Profesión" required />
+        <input id="demandaDisponibilidad" placeholder="Disponibilidad" required />
+        <textarea id="demandaDescripcion" placeholder="Descripción"></textarea>
+        <button>Crear demanda</button>
+      </form>
+      <div id="listaDemandas" class="lista"></div>
+    </section>
+
+    <section id="usuarios" class="card oculto">
+      <h2>Usuarios — solo ADMIN</h2>
+      <button id="cargarUsuarios">Cargar usuarios</button>
+      <div id="listaUsuarios" class="lista"></div>
+    </section>
+
+    <section class="card">
+      <h2>Mensajes de prueba</h2>
+      <pre id="mensajes"></pre>
+    </section>
+  </main>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
