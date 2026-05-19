@@ -2,7 +2,7 @@
 node_modules/
 
 # Configuración local / Secretos
-.env
+# .env (included for StackBlitz/CodeSandbox demo access)
 credentials.md
 
 # Certificados HTTPS (no subir claves privadas)
