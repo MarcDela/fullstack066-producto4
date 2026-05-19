@@ -2,6 +2,16 @@
 
 Aplicación web fullstack de gestión de ofertas y demandas de empleo en el sector agrícola.
 
+## 🌐 Demo en vivo
+
+| Plataforma | URL | Estado |
+|------------|-----|--------|
+| **Render (principal)** | https://fullstack066-producto4.onrender.com/ | ✅ Funcional (puede tardar ~30s en despertar si lleva inactivo) |
+| **CodeSandbox** | https://codesandbox.io/p/sandbox/github/MarcDela/fullstack066-producto4/tree/leonardo | ⚠️ Problemas de infraestructura (502 / microVM no arranca) |
+| **StackBlitz** | https://stackblitz.com/github/MarcDela/fullstack066-producto4/tree/leonardo?file=README.md | ⚠️ WebContainers no soporta bien mongoose/bcryptjs nativos |
+
+> **Nota:** CodeSandbox presentó errores de "Service Disruption" (502) durante el desarrollo. StackBlitz usa WebContainers (ejecución en navegador) que no es compatible con dependencias nativas de Node.js como `mongoose` y `bcryptjs`. Por ello, el despliegue principal se realizó en **Render.com** que ejecuta un servidor Node.js real.
+
 ## Tecnologías
 
 - **Backend**: Node.js + Express + Apollo Server (GraphQL) + Mongoose + Socket.io
